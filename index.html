@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrashScope — AI Accident Detection from Video</title>
+<meta name="description" content="Upload dashcam or CCTV footage and let Gemini AI detect accidents, near-misses and safety incidents with precise timestamps. Free, private, runs entirely in your browser.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="#top">
+    <img src="favicon.svg" alt="CrashScope logo" width="28" height="28">
+    <span>CrashScope</span>
+  </a>
+  <div class="nav-links">
+    <a href="#analyzer">Analyzer</a>
+    <a href="#how">How it works</a>
+    <a href="#uses">Use cases</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <a class="btn btn-small" href="#analyzer">Analyze a video</a>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="pill">Powered by Google Gemini &middot; 100% client-side &middot; no backend</div>
+    <h1>AI accident detection<br>from any video.</h1>
+    <p class="lede">Upload dashcam or CCTV footage. CrashScope sends it to Gemini AI, which watches the whole clip and returns every accident and near-miss &mdash; with exact timestamps, severity ratings and descriptions. Click any incident to jump straight to that moment.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#analyzer">Start analyzing</a>
+      <a class="btn btn-ghost" href="#how">How it works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><strong>1 fps</strong><span>frame sampling across the full video</span></div>
+      <div class="stat"><strong>4</strong><span>severity levels, auto-classified</span></div>
+      <div class="stat"><strong>$0</strong><span>runs on Gemini's free tier</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ==================== ANALYZER ==================== -->
+<section class="section" id="analyzer">
+  <h2>Analyzer</h2>
+  <p class="section-sub">Three steps. Your API key and your video never leave your browser except to reach Google's Gemini API directly.</p>
+
+  <div class="card step-card">
+    <div class="step-head"><span class="step-num">1</span><h3>Connect Gemini</h3></div>
+    <p class="muted">Paste a free Gemini API key. It is stored only in this browser's local storage &mdash; this page has no server, so there is nowhere else for it to go.</p>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off" spellcheck="false">
+      <button class="btn btn-primary" id="saveKeyBtn">Save &amp; test</button>
+      <button class="btn btn-ghost" id="clearKeyBtn" title="Remove the saved key">Clear</button>
+    </div>
+    <div class="key-meta">
+      <span id="keyStatus" class="key-status">No key saved yet.</span>
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a free key at Google AI Studio &rarr;</a>
+    </div>
+  </div>
+
+  <div class="card step-card">
+    <div class="step-head"><span class="step-num">2</span><h3>Choose your video</h3></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="upload">Upload video</button>
+      <button class="tab" data-tab="youtube">YouTube link</button>
+      <button class="tab" data-tab="demo">Demo &mdash; no key needed</button>
+    </div>
+
+    <div class="tab-panel" id="panel-upload">
+      <div class="dropzone" id="dropzone">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        <p><strong>Drag &amp; drop a video here</strong>, or <button class="linklike" id="browseBtn">browse files</button></p>
+        <p class="muted small">MP4, WebM, MOV &mdash; up to 2 GB. Clips under ~15 MB are analyzed instantly; larger files upload to Gemini's File API with a progress bar.</p>
+        <input type="file" id="fileInput" accept="video/*" hidden>
+      </div>
+      <div class="file-info hidden" id="fileInfo">
+        <div><strong id="fileName"></strong><span class="muted" id="fileMeta"></span></div>
+        <button class="linklike" id="removeFileBtn">remove</button>
+      </div>
+    </div>
+
+    <div class="tab-panel hidden" id="panel-youtube">
+      <p class="muted">Paste a link to a <strong>public</strong> YouTube video. Gemini fetches and analyzes it directly &mdash; no download needed. (Private and unlisted videos are not supported by the API.)</p>
+      <div class="key-row">
+        <input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=...">
+      </div>
+    </div>
+
+    <div class="tab-panel hidden" id="panel-demo">
+      <p class="muted">See exactly what a finished report looks like &mdash; a sample highway pile-up analysis with severity ratings, timestamps and a safety score. No API key, no upload.</p>
+      <button class="btn btn-ghost" id="demoBtn">Load sample report</button>
+    </div>
+  </div>
+
+  <div class="card step-card">
+    <div class="step-head"><span class="step-num">3</span><h3>Run the analysis</h3></div>
+    <div class="run-row">
+      <label class="field">Model
+        <select id="modelSelect">
+          <option value="gemini-3.5-flash" selected>gemini-3.5-flash &mdash; fast, recommended</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite &mdash; cheapest</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash &mdash; previous gen</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="detailToggle"> High-detail frame analysis <span class="muted small">(slower, better for small/distant details)</span></label>
+      <button class="btn btn-primary btn-big" id="analyzeBtn">Detect accidents</button>
+    </div>
+
+    <div class="progress hidden" id="progress">
+      <ol class="steps" id="stepList">
+        <li data-step="upload">Upload</li>
+        <li data-step="process">Video processing</li>
+        <li data-step="analyze">AI analysis</li>
+        <li data-step="report">Report</li>
+      </ol>
+      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+      <p class="muted small" id="progressMsg">Starting&hellip;</p>
+    </div>
+    <p class="error hidden" id="errorBox"></p>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="card results hidden" id="results">
+    <div class="results-head">
+      <h3>Analysis report</h3>
+      <div class="results-actions">
+        <button class="btn btn-ghost btn-small" id="exportBtn">Export JSON</button>
+        <button class="btn btn-ghost btn-small" id="copyBtn">Copy JSON</button>
+        <button class="btn btn-ghost btn-small" id="resetBtn">Analyze another</button>
+      </div>
+    </div>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="video-wrap hidden" id="videoWrap">
+      <video id="resultVideo" controls playsinline></video>
+      <div class="timeline" id="timeline"><div class="timeline-track"></div></div>
+      <p class="muted small">Click a marker &mdash; or any incident below &mdash; to jump to that moment.</p>
+    </div>
+    <div class="yt-note hidden muted small" id="ytNote"></div>
+    <h4>Incidents &amp; near-misses</h4>
+    <div id="incidentList" class="incident-list"></div>
+    <div class="assessment" id="assessment"></div>
+  </div>
+</section>
+
+<!-- ==================== HOW ==================== -->
+<section class="section" id="how">
+  <h2>How it works</h2>
+  <div class="grid-4">
+    <div class="mini-card"><span class="mini-num">1</span><h4>You provide the video</h4><p>Upload a file from your device, or paste a public YouTube link. Nothing is stored on any server belonging to this site &mdash; there isn't one.</p></div>
+    <div class="mini-card"><span class="mini-num">2</span><h4>Gemini watches it</h4><p>Your browser sends the video straight to Google's Gemini API, which samples frames across the full duration and understands motion, collisions and context &mdash; not just single images.</p></div>
+    <div class="mini-card"><span class="mini-num">3</span><h4>Incidents are extracted</h4><p>A structured prompt asks for every accident and near-miss as data: timestamps, type, severity, confidence, vehicles involved, visible injuries.</p></div>
+    <div class="mini-card"><span class="mini-num">4</span><h4>You review the report</h4><p>Incidents appear as clickable markers on your video's timeline. Export the full report as JSON for records, claims or fleet logs.</p></div>
+  </div>
+</section>
+
+<!-- ==================== USES ==================== -->
+<section class="section" id="uses">
+  <h2>Built for</h2>
+  <div class="grid-4">
+    <div class="mini-card"><h4>Dashcam review</h4><p>Scan hours of driving footage in minutes and jump straight to the moments that matter.</p></div>
+    <div class="mini-card"><h4>CCTV &amp; traffic cams</h4><p>Find collisions at intersections, parking lots and highways without scrubbing footage manually.</p></div>
+    <div class="mini-card"><h4>Fleet safety</h4><p>Log incidents per vehicle with severity scores to support driver coaching and safety reviews.</p></div>
+    <div class="mini-card"><h4>Insurance documentation</h4><p>Export timestamped, structured incident reports to attach to a claim file.</p></div>
+  </div>
+</section>
+
+<!-- ==================== FAQ ==================== -->
+<section class="section" id="faq">
+  <h2>FAQ</h2>
+  <div class="faq">
+    <details><summary>Where does my video go?</summary><p>From your browser directly to Google's Gemini API &mdash; either inline with the request (small clips) or via Google's File API (larger files, auto-deleted after 48 hours). This website is static hosting on GitHub Pages: it has no backend, no database and no analytics.</p></details>
+    <details><summary>Is my API key safe here?</summary><p>It is saved only in your browser's local storage and sent only to <code>generativelanguage.googleapis.com</code>. Anyone with your key can spend your quota, so don't paste it on shared computers &mdash; use the Clear button when you're done.</p></details>
+    <details><summary>What does it cost?</summary><p>Gemini's free tier covers generous daily usage &mdash; video analysis of typical clips costs fractions of a cent on paid tiers. Check Google AI Studio for current quotas.</p></details>
+    <details><summary>How accurate is it?</summary><p>Very good at spotting visible collisions, rollovers, pedestrian impacts and dramatic near-misses. It can miss subtle events in dark, blurry or distant footage. Treat the report as an assistant's first pass, not a certified finding &mdash; always verify critical timestamps yourself.</p></details>
+    <details><summary>What are the limits?</summary><p>Files up to 2 GB; YouTube links must be public videos. Very long videos (30+ minutes) take several minutes to process and analyze &mdash; the progress bar keeps you posted.</p></details>
+    <details><summary>Can it watch a live camera feed?</summary><p>Not in this version &mdash; it analyzes recorded video files and YouTube links. Live-stream analysis is on the roadmap.</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p><strong>CrashScope</strong> &mdash; AI accident detection from video. Static site, Gemini backend, your key, your data.</p>
+  <p class="muted small">Incident reports are AI-generated and must be verified before being relied upon for safety, legal or insurance decisions.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
